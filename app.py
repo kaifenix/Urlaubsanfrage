@@ -15,7 +15,7 @@ from datetime import date, datetime
 
 from flask import Flask, jsonify, request, send_from_directory
 
-from hotelplaner import ai, config, db, emailer, scraper
+from hotelplaner import ai, config, db, emailer, imap_fetch, scraper
 
 app = Flask(__name__, static_folder="static", static_url_path="/static")
 db.init_db()
@@ -297,6 +297,38 @@ def parse_offers():
                     "links_followed": [p["url"] for p in linked_pages]})
 
 
+@app.route("/api/inbox/fetch", methods=["POST"])
+def fetch_inbox():
+    """Angebots-Antworten aus dem Postfach (IMAP) abrufen und Hotels zuordnen."""
+    d = request.get_json(force=True, silent=True) or {}
+    limit = int(d.get("limit") or 15)
+    unseen_only = bool(d.get("unseen_only"))
+    try:
+        mails = imap_fetch.fetch_recent(limit=limit, unseen_only=unseen_only)
+    except imap_fetch.IMAPError as exc:
+        return _json_error(str(exc), 502)
+
+    # Absenderadresse -> Hotel zuordnen (exakt oder gleiche Domain)
+    hotels = [db.hotel_to_dict(r) for r in db.query("SELECT * FROM hotels")]
+    by_email, by_domain = {}, {}
+    for h in hotels:
+        addr = (h.get("email") or "").strip().lower()
+        if addr:
+            by_email[addr] = h
+            if "@" in addr:
+                by_domain.setdefault(addr.split("@")[1], h)
+
+    for m in mails:
+        sender = m["from_email"]
+        match = by_email.get(sender)
+        if not match and "@" in sender:
+            match = by_domain.get(sender.split("@")[1])
+        m["hotel_id"] = match["id"] if match else None
+        m["hotel_name"] = match["name"] if match else ""
+
+    return jsonify({"mails": mails})
+
+
 @app.route("/api/offers", methods=["GET"])
 def list_offers():
     rows = db.query(
@@ -426,22 +458,27 @@ def summary_email():
 
 @app.route("/api/settings", methods=["GET"])
 def get_settings():
-    return jsonify(config.public_config())
+    cfg = config.public_config()
+    cfg["playwright_available"] = scraper.playwright_available()
+    return jsonify(cfg)
 
 
 @app.route("/api/settings", methods=["POST"])
 def save_settings():
     d = request.get_json(force=True, silent=True) or {}
     update = {}
-    for key in ("model", "sender_name", "sender_contact", "self_email"):
+    for key in ("model", "sender_name", "sender_contact", "self_email", "render_mode"):
         if key in d:
             update[key] = d[key]
     # API-Key nur überschreiben, wenn ein neuer (nicht-leerer) Wert kommt
     if d.get("anthropic_api_key"):
         update["anthropic_api_key"] = d["anthropic_api_key"]
-    if isinstance(d.get("smtp"), dict):
-        smtp = {k: v for k, v in d["smtp"].items() if k != "password" or v}
-        update["smtp"] = smtp
+    # SMTP/IMAP: Passwort nur überschreiben, wenn ein neuer Wert kommt
+    for section in ("smtp", "imap"):
+        if isinstance(d.get(section), dict):
+            update[section] = {
+                k: v for k, v in d[section].items() if k != "password" or v
+            }
     config.save_config(update)
     return jsonify(config.public_config())
 

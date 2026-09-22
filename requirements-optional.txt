@@ -1,0 +1,5 @@
+# Optional: nur nötig für das Rendern JavaScript-lastiger Hotelseiten.
+# Installation:
+#   pip install -r requirements-optional.txt
+#   playwright install chromium
+playwright>=1.40

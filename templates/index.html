@@ -96,6 +96,21 @@
       <h2>Angebote auslesen &amp; vergleichen</h2>
 
       <div class="card">
+        <div class="row space-between">
+          <h3>Aus Postfach abrufen (IMAP)</h3>
+          <div class="row" style="margin:0">
+            <label class="checkbox" style="margin:0"><input type="checkbox" id="inbox-unseen" /> nur ungelesene</label>
+            <button id="btn-fetch-inbox">Postfach abrufen</button>
+          </div>
+        </div>
+        <p class="hint">Ruft die letzten Antworten aus deinem Postfach ab und ordnet
+          sie (über die Absender-Adresse) automatisch deinen Hotels zu. Es wird nur
+          gelesen – nichts gelöscht oder als gelesen markiert.</p>
+        <div id="inbox-status" class="status"></div>
+        <div id="inbox-list"></div>
+      </div>
+
+      <div class="card">
         <h3>Angebots-Antwort auslesen</h3>
         <label>Hotel (zuordnen)
           <select id="offer-hotel"><option value="">– kein Hotel –</option></select>
@@ -145,6 +160,22 @@
       </div>
 
       <div class="card">
+        <h3>Webseiten-Rendering</h3>
+        <p class="hint">Für rein per JavaScript aufgebaute Hotelseiten kann optional
+          ein echter Browser (Playwright, kostenlos, lokal) genutzt werden. Installation:
+          <code>pip install playwright &amp;&amp; playwright install chromium</code>.
+          Ohne Playwright wird immer statisch geladen.</p>
+        <label>Render-Modus
+          <select id="set-render-mode">
+            <option value="auto">auto – bei zu wenig Text automatisch rendern (empfohlen)</option>
+            <option value="never">never – nie rendern (nur statisch, am schnellsten)</option>
+            <option value="always">always – immer rendern (langsamer)</option>
+          </select>
+        </label>
+        <p class="hint" id="render-status"></p>
+      </div>
+
+      <div class="card">
         <h3>Absender</h3>
         <div class="grid2">
           <label>Dein Name <input type="text" id="set-sender-name" /></label>
@@ -167,6 +198,23 @@
           <label class="checkbox"><input type="checkbox" id="set-smtp-tls" checked /> TLS verwenden</label>
         </div>
         <p class="hint" id="smtp-status"></p>
+      </div>
+
+      <div class="card">
+        <h3>E-Mail-Abruf (IMAP)</h3>
+        <p class="hint">Zum automatischen Abrufen eingehender Angebote aus deinem
+          Postfach. Bei Gmail dasselbe
+          <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">App-Passwort</a>
+          wie beim Versand nutzen.</p>
+        <div class="grid2">
+          <label>IMAP-Host <input type="text" id="set-imap-host" placeholder="imap.gmail.com" /></label>
+          <label>Port <input type="number" id="set-imap-port" value="993" /></label>
+          <label>Benutzer <input type="text" id="set-imap-user" /></label>
+          <label>Passwort / App-Passwort <input type="password" id="set-imap-pass" placeholder="(leer lassen = unverändert)" /></label>
+          <label>Ordner <input type="text" id="set-imap-folder" value="INBOX" /></label>
+          <label class="checkbox"><input type="checkbox" id="set-imap-ssl" checked /> SSL verwenden</label>
+        </div>
+        <p class="hint" id="imap-status"></p>
       </div>
 
       <div class="row">

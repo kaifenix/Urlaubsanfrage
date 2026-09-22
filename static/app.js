@@ -380,6 +380,64 @@ $("#btn-parse-offer").addEventListener("click", async () => {
   }
 });
 
+// ---- Postfach abrufen (IMAP) ----
+let INBOX = [];
+
+$("#btn-fetch-inbox").addEventListener("click", async () => {
+  const status = $("#inbox-status");
+  status.className = "status";
+  status.textContent = "Postfach wird abgerufen …";
+  $("#btn-fetch-inbox").disabled = true;
+  try {
+    const data = await api("/api/inbox/fetch", {
+      method: "POST",
+      body: JSON.stringify({ limit: 15, unseen_only: $("#inbox-unseen").checked }),
+    });
+    INBOX = data.mails;
+    status.className = "status ok";
+    status.textContent = `${INBOX.length} E-Mail(s) geladen.`;
+    renderInbox();
+  } catch (e) {
+    status.className = "status err";
+    status.textContent = e.message;
+  } finally {
+    $("#btn-fetch-inbox").disabled = false;
+  }
+});
+
+function renderInbox() {
+  const el = $("#inbox-list");
+  if (!INBOX.length) {
+    el.innerHTML = '<p class="muted">Keine E-Mails geladen.</p>';
+    return;
+  }
+  el.innerHTML = INBOX.map((m, i) => {
+    const match = m.hotel_name
+      ? `<span class="chip">→ ${esc(m.hotel_name)}</span>`
+      : '<span class="muted">kein Hotel zugeordnet</span>';
+    return `<div class="hotel-item">
+      <div class="hotel-head">
+        <div>
+          <strong>${esc(m.subject) || "(kein Betreff)"}</strong>
+          <div class="muted">${esc(m.from_name)} &lt;${esc(m.from_email)}&gt; · ${esc(m.date)}</div>
+          <div class="chips">${match}</div>
+        </div>
+        <button class="small primary" onclick="useInboxMail(${i})">Angebote auslesen</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+window.useInboxMail = (i) => {
+  const m = INBOX[i];
+  if (!m) return;
+  if (m.hotel_id) $("#offer-hotel").value = String(m.hotel_id);
+  $("#offer-text").value = m.body || "";
+  $("#offer-text").scrollIntoView({ behavior: "smooth", block: "center" });
+  // direkt auslesen
+  $("#btn-parse-offer").click();
+};
+
 function renderOfferDrafts() {
   const area = $("#offer-draft-area");
   if (!PARSED_OFFERS.length) { area.innerHTML = ""; return; }
@@ -505,12 +563,25 @@ async function loadSettings() {
   $("#set-sender-name").value = cfg.sender_name || "";
   $("#set-sender-contact").value = cfg.sender_contact || "";
   $("#set-self-email").value = cfg.self_email || "";
+  $("#set-render-mode").value = cfg.render_mode || "auto";
   const smtp = cfg.smtp || {};
   $("#set-smtp-host").value = smtp.host || "";
   $("#set-smtp-port").value = smtp.port || 587;
   $("#set-smtp-user").value = smtp.user || "";
   $("#set-smtp-from").value = smtp.from_email || "";
   $("#set-smtp-tls").checked = smtp.use_tls !== false;
+  const imap = cfg.imap || {};
+  $("#set-imap-host").value = imap.host || "";
+  $("#set-imap-port").value = imap.port || 993;
+  $("#set-imap-user").value = imap.user || "";
+  $("#set-imap-folder").value = imap.folder || "INBOX";
+  $("#set-imap-ssl").checked = imap.use_ssl !== false;
+  $("#imap-status").textContent = imap.password_set
+    ? "✓ IMAP-Passwort ist hinterlegt."
+    : "Kein IMAP-Passwort hinterlegt.";
+  $("#render-status").textContent = cfg.playwright_available
+    ? "✓ Playwright ist installiert – Rendering verfügbar."
+    : "Playwright ist nicht installiert – es wird immer statisch geladen.";
   $("#apikey-status").textContent = cfg.anthropic_api_key_set
     ? "✓ API-Key ist hinterlegt (Eingabe leer lassen = unverändert)."
     : "⚠ Noch kein API-Key hinterlegt – KI-Funktionen sind bis dahin deaktiviert.";
@@ -525,6 +596,7 @@ $("#btn-save-settings").addEventListener("click", async () => {
     sender_name: $("#set-sender-name").value,
     sender_contact: $("#set-sender-contact").value,
     self_email: $("#set-self-email").value,
+    render_mode: $("#set-render-mode").value,
     smtp: {
       host: $("#set-smtp-host").value,
       port: +$("#set-smtp-port").value || 587,
@@ -532,13 +604,22 @@ $("#btn-save-settings").addEventListener("click", async () => {
       from_email: $("#set-smtp-from").value,
       use_tls: $("#set-smtp-tls").checked,
     },
+    imap: {
+      host: $("#set-imap-host").value,
+      port: +$("#set-imap-port").value || 993,
+      user: $("#set-imap-user").value,
+      folder: $("#set-imap-folder").value || "INBOX",
+      use_ssl: $("#set-imap-ssl").checked,
+    },
   };
   if ($("#set-apikey").value.trim()) payload.anthropic_api_key = $("#set-apikey").value.trim();
   if ($("#set-smtp-pass").value.trim()) payload.smtp.password = $("#set-smtp-pass").value.trim();
+  if ($("#set-imap-pass").value.trim()) payload.imap.password = $("#set-imap-pass").value.trim();
   try {
     await api("/api/settings", { method: "POST", body: JSON.stringify(payload) });
     $("#set-apikey").value = "";
     $("#set-smtp-pass").value = "";
+    $("#set-imap-pass").value = "";
     toast("Einstellungen gespeichert.");
     loadSettings();
   } catch (e) {
