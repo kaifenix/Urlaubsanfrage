@@ -1,0 +1,19 @@
+# lokale Konfiguration (enthält ggf. API-Key / SMTP-Passwort) – NICHT committen
+config.json
+
+# lokale Datenbank
+data.db
+data.db-journal
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# generierte E-Mails
+*.eml
+
+# OS
+.DS_Store

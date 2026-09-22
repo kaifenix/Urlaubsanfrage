@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hotel-Urlaubsplaner</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header>
+    <h1>🏔️ Hotel-Urlaubsplaner</h1>
+    <nav id="tabs">
+      <button class="tab active" data-tab="hotels">Hotels</button>
+      <button class="tab" data-tab="anfrage">Anfrage</button>
+      <button class="tab" data-tab="vergleich">Angebote &amp; Vergleich</button>
+      <button class="tab" data-tab="einstellungen">Einstellungen</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- ================= HOTELS ================= -->
+    <section id="hotels" class="panel active">
+      <h2>Hotel-Datenbank</h2>
+
+      <div class="card">
+        <h3>Neues Hotel aus Link auslesen</h3>
+        <div class="row">
+          <input type="url" id="hotel-url" placeholder="https://www.hotel-beispiel.com" />
+          <button id="btn-extract" class="primary">Auslesen</button>
+        </div>
+        <p class="hint">Das Tool lädt die Seite und extrahiert per KI Name, Ort,
+          Region, E-Mail und Merkmale. Unsichere Felder bleiben leer – du füllst sie
+          selbst nach. Alles bleibt jederzeit bearbeitbar.</p>
+        <div id="extract-status" class="status"></div>
+      </div>
+
+      <div class="card">
+        <div class="row space-between">
+          <h3>Meine Hotels</h3>
+          <button id="btn-new-hotel">+ Leeres Hotel anlegen</button>
+        </div>
+        <div class="row filters">
+          <label>Region
+            <select id="filter-region"><option value="">Alle</option></select>
+          </label>
+          <label>Merkmal
+            <select id="filter-tag"><option value="">Alle</option></select>
+          </label>
+          <span id="hotel-count" class="muted"></span>
+        </div>
+        <div id="hotel-list"></div>
+      </div>
+    </section>
+
+    <!-- ================= ANFRAGE ================= -->
+    <section id="anfrage" class="panel">
+      <h2>Angebotsanfragen erstellen</h2>
+      <div class="card">
+        <h3>Reisedaten</h3>
+        <div class="grid2">
+          <label>Zeitraum von <input type="date" id="req-von" /></label>
+          <label>Zeitraum bis <input type="date" id="req-bis" /></label>
+          <label>Personen <input type="number" id="req-personen" min="1" value="2" /></label>
+          <label>Kinder / Alter <input type="text" id="req-kinder" placeholder="z. B. 2 Kinder (4 & 7)" /></label>
+        </div>
+        <label>Weitere Angaben
+          <textarea id="req-extra" rows="3" placeholder="z. B. Zimmerwunsch, Verpflegung, Flexibilität beim Datum …"></textarea>
+        </label>
+      </div>
+
+      <div class="card">
+        <div class="row space-between">
+          <h3>Hotels auswählen</h3>
+          <span class="muted" id="anfrage-count"></span>
+        </div>
+        <div class="row filters">
+          <label>Region
+            <select id="af-filter-region"><option value="">Alle</option></select>
+          </label>
+          <label>Merkmal
+            <select id="af-filter-tag"><option value="">Alle</option></select>
+          </label>
+          <button id="btn-select-all" type="button">Alle sichtbaren wählen</button>
+        </div>
+        <div id="anfrage-hotel-list"></div>
+        <div class="row">
+          <button id="btn-preview" class="primary">Vorschau erzeugen</button>
+        </div>
+      </div>
+
+      <div id="preview-area"></div>
+    </section>
+
+    <!-- ================= VERGLEICH ================= -->
+    <section id="vergleich" class="panel">
+      <h2>Angebote auslesen &amp; vergleichen</h2>
+
+      <div class="card">
+        <h3>Angebots-Antwort auslesen</h3>
+        <label>Hotel (zuordnen)
+          <select id="offer-hotel"><option value="">– kein Hotel –</option></select>
+        </label>
+        <label>Text der Angebots-Mail einfügen
+          <textarea id="offer-text" rows="8" placeholder="Kompletten Mail-Text hier einfügen. Mehrere Angebote in einer Mail werden erkannt."></textarea>
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" id="offer-follow-links" />
+          Links in der Mail mitauswerten (lädt bis zu 3 verlinkte Seiten)
+        </label>
+        <div class="row">
+          <button id="btn-parse-offer" class="primary">Angebote auslesen</button>
+        </div>
+        <div id="offer-parse-status" class="status"></div>
+        <div id="offer-draft-area"></div>
+      </div>
+
+      <div class="card">
+        <div class="row space-between">
+          <h3>Vergleichstabelle</h3>
+          <div>
+            <button id="btn-refresh-offers">Aktualisieren</button>
+            <button id="btn-summary-mail">Zusammenfassung per Mail an mich</button>
+          </div>
+        </div>
+        <div id="compare-table"></div>
+      </div>
+    </section>
+
+    <!-- ================= EINSTELLUNGEN ================= -->
+    <section id="einstellungen" class="panel">
+      <h2>Einstellungen</h2>
+      <div class="card">
+        <h3>KI (Claude API)</h3>
+        <label>Anthropic API-Key
+          <input type="password" id="set-apikey" placeholder="sk-ant-… (leer lassen = unverändert)" />
+        </label>
+        <p class="hint" id="apikey-status"></p>
+        <label>Modell
+          <select id="set-model">
+            <option value="claude-haiku-4-5">claude-haiku-4-5 (günstigste Empfehlung)</option>
+            <option value="claude-sonnet-5">claude-sonnet-5 (genauer, teurer)</option>
+            <option value="claude-opus-5">claude-opus-5 (am stärksten, am teuersten)</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="card">
+        <h3>Absender</h3>
+        <div class="grid2">
+          <label>Dein Name <input type="text" id="set-sender-name" /></label>
+          <label>Kontakt (Zeile unter Grußformel) <input type="text" id="set-sender-contact" /></label>
+          <label>Eigene E-Mail (für Zusammenfassung) <input type="email" id="set-self-email" /></label>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>E-Mail-Versand (SMTP)</h3>
+        <p class="hint">Für den Versand dein eigenes Postfach nutzen (z. B. Gmail mit
+          <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">App-Passwort</a>).
+          Kostenlos, keine externen Dienste.</p>
+        <div class="grid2">
+          <label>SMTP-Host <input type="text" id="set-smtp-host" placeholder="smtp.gmail.com" /></label>
+          <label>Port <input type="number" id="set-smtp-port" value="587" /></label>
+          <label>Benutzer <input type="text" id="set-smtp-user" /></label>
+          <label>Passwort / App-Passwort <input type="password" id="set-smtp-pass" placeholder="(leer lassen = unverändert)" /></label>
+          <label>Absender-Adresse <input type="email" id="set-smtp-from" /></label>
+          <label class="checkbox"><input type="checkbox" id="set-smtp-tls" checked /> TLS verwenden</label>
+        </div>
+        <p class="hint" id="smtp-status"></p>
+      </div>
+
+      <div class="row">
+        <button id="btn-save-settings" class="primary">Einstellungen speichern</button>
+        <span id="settings-status" class="status"></span>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast"></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

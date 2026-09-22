@@ -1,0 +1,15 @@
+{
+  "anthropic_api_key": "",
+  "model": "claude-haiku-4-5",
+  "sender_name": "Max Mustermann",
+  "sender_contact": "Tel. 0123 456789",
+  "self_email": "kaibri1995@gmail.com",
+  "smtp": {
+    "host": "smtp.gmail.com",
+    "port": 587,
+    "user": "kaibri1995@gmail.com",
+    "password": "",
+    "use_tls": true,
+    "from_email": "kaibri1995@gmail.com"
+  }
+}
